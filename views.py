@@ -197,12 +197,31 @@ def oauth_completion(request):
     oauth = request.session["oauth"]
     print oauth
 
+
     if request.method == 'POST':
         data['form'] = OAuthSignUpForm(request.POST)
         if data['form'].is_valid():
+            username = data['form'].cleaned_data.get('username')
+            print username
+            print oauth.get('lastname')
+            print oauth.get('firstname')
+            print oauth.get('id')
+            print oauth.get('email')
+            print oauth.get('server')
+
             return render(request, 'id/oauth_completion.html', data)
         return render(request, 'id/oauth_completion.html', data)
     else:
+        # Если пользователь уже зарегистрирован с этим email
+        try:
+            user = User.objects.get(email=oauth.get('email'))
+        except User.DoesNotExist:
+            pass
+        else:
+            auth.login(request, user)
+            return redirect('/') #FIXME next
+
+        # Выводим html страницу
         data['form'] = OAuthSignUpForm()
         return render(request, 'id/oauth_completion.html', data)
 

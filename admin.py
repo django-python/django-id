@@ -6,6 +6,10 @@ from django.contrib import admin
 # Register your models here.
 from .models import Session
 
-admin.site.register(Session)
+class SessionAdmin(admin.ModelAdmin):
+    list_display = ('session_key', 'user', 'type', 'date')
+    list_filter = ('type',)
+
+admin.site.register(Session, SessionAdmin)
 
 

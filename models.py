@@ -23,5 +23,6 @@ class OAuth(models.Model):
         (3, 'Mail.ru'),
     )
 
+    user     = models.ForeignKey(User, models.SET_NULL, blank=True, null=True)
     oauth_id = models.CharField(max_length=200)
     server   = models.IntegerField(choices=SERVER)

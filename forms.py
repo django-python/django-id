@@ -20,15 +20,12 @@ class OAuthSignUpForm(forms.Form):
         match = re.search(r'^[a-z]+[a-z0-9]+[_-]*[a-z0-9]+$', username)
         if not match:
             raise forms.ValidationError(_("Enter a valid username. This value may contain only English letters, numbers, and _ - characters. Username should not begin with a number."))
-
         try:
             User.objects.get(username=username)
         except User.DoesNotExist:
             pass
         else:
             raise forms.ValidationError(_("A user with that username already exists."))
-
-
         return username
 
     #last_name  = forms.CharField(max_length=30, label=_('Last name'), required=True)
