@@ -12,17 +12,21 @@ class Session(models.Model):
 
     session_key = models.CharField(max_length=40)
     date        = models.DateTimeField(auto_now=True)
-    user        = models.ForeignKey(User, models.SET_NULL, blank=True, null=True)
+    user        = models.ForeignKey(User)
     type        = models.IntegerField(choices=TYPE, default=None)
 
 
-class OAuth(models.Model):
+class Oauth(models.Model):
     SERVER = (
         (1, 'Google'),
         (2, 'Yandex'),
         (3, 'Mail.ru'),
     )
 
-    user     = models.ForeignKey(User, models.SET_NULL, blank=True, null=True)
+    user     = models.ForeignKey(User)
     oauth_id = models.CharField(max_length=200)
     server   = models.IntegerField(choices=SERVER)
+
+    class Meta:
+        unique_together = (('oauth_id', 'server'),)
+

@@ -53,11 +53,15 @@ class SignUpForm(UserCreationForm):
 
     def clean_email(self):
         email = self.cleaned_data['email']
-        email = email.lower()
+        email = email.lower().strip()
+
+        user = email.rsplit('@', 1)[0]
+        domain = email.rsplit('@', 1)[-1]
+        if domain == 'ya.ru' or domain == 'yandex.by' or domain == 'yandex.com' or domain == 'yandex.kz' or domain == 'yandex.ua':
+            email = user+'@yandex.ru'
 
         if not validate_email(email,check_mx=True):
             raise forms.ValidationError(_("Enter a valid email address."))
-
         try:
             User.objects.get(email=email)
         except User.DoesNotExist:
@@ -67,7 +71,7 @@ class SignUpForm(UserCreationForm):
 
     def save(self, commit=True):
         user = super(SignUpForm, self).save(commit=False)
-        email = self.cleaned_data['email']
+        email = self.cleaned_data['email'].lower().strip()
 
         if commit:
             user.is_active = False

@@ -11,7 +11,7 @@ from django.contrib.auth.models import User
 from django.contrib.auth.views import login, logout_then_login
 from django.conf import settings
 from .forms import SignUpForm, OAuthSignUpForm
-from .models import Session
+from .models import Session, Oauth
 
 import requests
 try:
@@ -113,9 +113,6 @@ def signup(request):
 def oauth_google(request):
     data = {'title':_('Sign up'), }
 
-    #user = User.objects.get(username='kostya')
-    #auth.login(request, user)
-
     if request.GET.get('code'):
         data = {
             'grant_type':'authorization_code',
@@ -167,7 +164,7 @@ def oauth_google(request):
             'lastname':json.get('family_name'),
             'firstname':json.get('given_name'),
             'id':json.get('id'),
-            'email':json.get('email').lower(),
+            'email':_email_alias(json.get('email')),
         }
 
         return redirect('/id/oauth/completion/')
@@ -187,29 +184,24 @@ def oauth_google(request):
     return redirect(urlparse.urlunparse(url_parts))
 
 
-
-    return render(request, 'id/signup.html', data)
-
-
 def oauth_completion(request):
     data = {}
 
     oauth = request.session["oauth"]
-    print oauth
-
-
     if request.method == 'POST':
         data['form'] = OAuthSignUpForm(request.POST)
         if data['form'].is_valid():
             username = data['form'].cleaned_data.get('username')
-            print username
-            print oauth.get('lastname')
-            print oauth.get('firstname')
-            print oauth.get('id')
-            print oauth.get('email')
-            print oauth.get('server')
 
-            return render(request, 'id/oauth_completion.html', data)
+            user = User(username=username, last_name=oauth.get('lastname'), first_name=oauth.get('firstname'), email=oauth.get('email'))
+            user.save()
+
+            #oauth = Oauth(oauth_id=oauth.get('id'), server=oauth.get('server'), user=user)
+            #oauth.save()
+
+            auth.login(request, user)
+            return redirect('/') #FIXME next
+
         return render(request, 'id/oauth_completion.html', data)
     else:
         # Если пользователь уже зарегистрирован с этим email
@@ -226,7 +218,15 @@ def oauth_completion(request):
         return render(request, 'id/oauth_completion.html', data)
 
 
+def _email_alias(email):
+    email = email.lower().strip()
 
+    user = email.rsplit('@', 1)[0]
+    domain = email.rsplit('@', 1)[-1]
+    if domain == 'ya.ru' or domain == 'yandex.by' or domain == 'yandex.com' or domain == 'yandex.kz' or domain == 'yandex.ua':
+        return user+'@yandex.ru'
+
+    return email
 
 
 
