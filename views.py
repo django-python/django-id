@@ -13,7 +13,7 @@ from django.conf import settings
 from .forms import SignUpForm, OAuthSignUpForm
 from .models import Session, Oauth
 
-import requests
+import requests, hashlib
 try:
     import urlparse
     from urllib import urlencode
@@ -154,6 +154,7 @@ def oauth_google(request):
 
 
         json = r.json()
+        print json
 
         if json.get('verified_email') != True:
             data = {'title':_('Error'), 'alert':{'message':_(u'You have not verified your email address'), 'type':'danger'} }
@@ -165,6 +166,7 @@ def oauth_google(request):
             'firstname':json.get('given_name'),
             'id':json.get('id'),
             'email':_email_alias(json.get('email')),
+            'avatar':json.get('picture'),
         }
 
         return redirect('/id/oauth/completion/')
@@ -232,6 +234,7 @@ def oauth_yandex(request):
             'firstname':json.get('first_name'),
             'id':json.get('id'),
             'email':_email_alias(json.get('default_email')),
+            'avatar':'https://avatars.yandex.net/get-yapic/'+json.get('default_avatar_id')+'/islands-200',
         }
         return redirect('/id/oauth/completion/')
 
@@ -249,6 +252,91 @@ def oauth_yandex(request):
     url_parts[4] = urlencode(query)
     return redirect(urlparse.urlunparse(url_parts))
 
+def oauth_mailru(request):
+    data = {'title':_('Sign up'), }
+
+    if request.GET.get('code'):
+        data = {
+            'grant_type':'authorization_code',
+            'code': request.GET.get('code'),
+            'client_id': settings.ID_OAUTH_MAILRU_CLIENT_ID,
+            'client_secret': settings.ID_OAUTH_MAILRU_SECRET_KEY,
+            'redirect_uri': request.META.get('HTTP_X_FORWARDED_PROTO', request.scheme)+'://'+request.get_host()+request.path,
+        }
+
+        try:
+            r = requests.post('https://connect.mail.ru/oauth/token', data=data, timeout=5.000)
+        except requests.exceptions.Timeout:
+            data = {'title':_('Error'), 'alert':{'message':_(u'Connection timeout %(site)s') % {'site':'connect.mail.ru'}, 'type':'danger'} }
+            return render(request, 'id/alert.html', data)
+        except requests.exceptions.TooManyRedirects:
+            data = {'title':_('Error'), 'alert':{'message':_(u'Could not open the site, too many redirects'), 'type':'danger'} }
+            return render(request, 'id/alert.html', data)
+        except requests.exceptions.RequestException as err:
+            data = {'title':_('Error'), 'alert':{'message':err, 'type':'danger'} }
+            return render(request, 'id/alert.html', data)
+
+        json = r.json()
+
+        access_token = json.get('access_token')
+        token_type   = json.get('token_type')
+        expires_in   = json.get('expires_in')
+        x_mailru_vid = json.get('x_mailru_vid')
+
+        params = {
+            'method':'users.getInfo',
+            'uids':x_mailru_vid,
+            'app_id':settings.ID_OAUTH_MAILRU_CLIENT_ID,
+            'session_key':access_token,
+            'secure':1,
+        }
+
+        list_param = []
+        for key in sorted(params):
+            list_param.append("%s=%s" % (key, params[key]))
+
+        m = hashlib.md5()
+        m.update(''.join(list_param)+settings.ID_OAUTH_MAILRU_SECRET_KEY)
+        params = '&'.join(list_param)
+
+        try:
+            r = requests.get("https://www.appsmail.ru/platform/api?"+params+"&sig="+m.hexdigest(), timeout=5.000)
+        except requests.exceptions.Timeout:
+            data = {'title':_('Error'), 'alert':{'message':_(u'Connection timeout %(site)s') % {'site':'appsmail.ru'}, 'type':'danger'} }
+            return render(request, 'id/alert.html', data)
+        except requests.exceptions.TooManyRedirects:
+            data = {'title':_('Error'), 'alert':{'message':_(u'Could not open the site, too many redirects'), 'type':'danger'} }
+            return render(request, 'id/alert.html', data)
+        except requests.exceptions.RequestException as err:
+            data = {'title':_('Error'), 'alert':{'message':err, 'type':'danger'} }
+            return render(request, 'id/alert.html', data)
+
+        json = r.json()
+        json = json[-1]
+        request.session["oauth"] = {
+            'server':3,
+            'lastname':json.get('last_name'),
+            'firstname':json.get('first_name'),
+            'id':json.get('uid'),
+            'email':_email_alias(json.get('email')),
+            'avatar':json.get('pic_190'),
+        }
+        return redirect('/id/oauth/completion/')
+
+
+
+    url = 'https://connect.mail.ru/oauth/authorize'
+    params = {
+        'client_id': settings.ID_OAUTH_MAILRU_CLIENT_ID,
+        'redirect_uri': request.META.get('HTTP_X_FORWARDED_PROTO', request.scheme)+'://'+request.get_host()+request.path,
+        'response_type':'code',
+    }
+
+    url_parts = list(urlparse.urlparse(url))
+    query = dict(urlparse.parse_qsl(url_parts[4]))
+    query.update(params)
+    url_parts[4] = urlencode(query)
+    return redirect(urlparse.urlunparse(url_parts))
 
 def oauth_completion(request):
     data = {}
@@ -261,9 +349,6 @@ def oauth_completion(request):
 
             user = User(username=username, last_name=oauth.get('lastname'), first_name=oauth.get('firstname'), email=oauth.get('email'))
             user.save()
-
-            #oauth = Oauth(oauth_id=oauth.get('id'), server=oauth.get('server'), user=user)
-            #oauth.save()
 
             auth.login(request, user)
             return redirect('/') #FIXME next

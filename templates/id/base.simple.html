@@ -60,6 +60,7 @@
     <!-- Bootstrap tether Core JavaScript -->
     <script src="/static/assets/plugins/bootstrap/js/popper.min.js"></script>
     <script src="/static/assets/plugins/bootstrap/js/bootstrap.min.js"></script>
+    
     <script type="text/javascript">
         $(function() {
             $(".preloader").fadeOut();
@@ -75,6 +76,7 @@
             $("#recoverform").fadeIn();
         });
     </script>
+    {% block js %}{% endblock %}
 </body>
 
 </html>

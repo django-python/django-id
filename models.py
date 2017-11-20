@@ -30,3 +30,4 @@ class Oauth(models.Model):
     class Meta:
         unique_together = (('oauth_id', 'server'),)
 
+

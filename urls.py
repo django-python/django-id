@@ -11,6 +11,7 @@ urlpatterns = [
 
     url(r'id/oauth/google/$', views.oauth_google),
     url(r'id/oauth/yandex/$', views.oauth_yandex),
+    url(r'id/oauth/mailru/$', views.oauth_mailru),
 
     url(r'id/oauth/completion/$', views.oauth_completion),
 ]
