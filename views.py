@@ -183,6 +183,72 @@ def oauth_google(request):
     url_parts[4] = urlencode(query)
     return redirect(urlparse.urlunparse(url_parts))
 
+def oauth_yandex(request):
+    data = {'title':_('Sign up'), }
+
+    if request.GET.get('code'):
+        data = {
+            'grant_type':'authorization_code',
+            'code': request.GET.get('code'),
+            'client_id': settings.ID_OAUTH_YANDEX_CLIENT_ID,
+            'client_secret': settings.ID_OAUTH_YANDEX_SECRET_KEY,
+        }
+
+        try:
+            r = requests.post('https://oauth.yandex.ru/token', data=data, timeout=5.000)
+        except requests.exceptions.Timeout:
+            data = {'title':_('Error'), 'alert':{'message':_(u'Connection timeout %(site)s') % {'site':'oauth.yandex.ru'}, 'type':'danger'} }
+            return render(request, 'id/alert.html', data)
+        except requests.exceptions.TooManyRedirects:
+            data = {'title':_('Error'), 'alert':{'message':_(u'Could not open the site, too many redirects'), 'type':'danger'} }
+            return render(request, 'id/alert.html', data)
+        except requests.exceptions.RequestException as err:
+            data = {'title':_('Error'), 'alert':{'message':err, 'type':'danger'} }
+            return render(request, 'id/alert.html', data)
+
+        json = r.json()
+
+        access_token = json.get('access_token')
+        token_type   = json.get('token_type')
+        expires_in   = json.get('expires_in')
+
+        try:
+            r = requests.get('https://login.yandex.ru/info', params={'format':'json'}, headers={'Authorization':'OAuth '+access_token}, timeout=5.000)
+        except requests.exceptions.Timeout:
+            data = {'title':_('Error'), 'alert':{'message':_(u'Connection timeout %(site)s') % {'site':'login.yandex.ru'}, 'type':'danger'} }
+            return render(request, 'id/alert.html', data)
+        except requests.exceptions.TooManyRedirects:
+            data = {'title':_('Error'), 'alert':{'message':_(u'Could not open the site, too many redirects'), 'type':'danger'} }
+            return render(request, 'id/alert.html', data)
+        except requests.exceptions.RequestException as err:
+            data = {'title':_('Error'), 'alert':{'message':err, 'type':'danger'} }
+            return render(request, 'id/alert.html', data)
+
+        json = r.json()
+
+        request.session["oauth"] = {
+            'server':1,
+            'lastname':json.get('last_name'),
+            'firstname':json.get('first_name'),
+            'id':json.get('id'),
+            'email':_email_alias(json.get('default_email')),
+        }
+        return redirect('/id/oauth/completion/')
+
+
+    url = 'https://oauth.yandex.ru/authorize'
+    params = {
+        'client_id': settings.ID_OAUTH_YANDEX_CLIENT_ID,
+        'response_type':'code',
+        'force_confirm':'yes',
+    }
+
+    url_parts = list(urlparse.urlparse(url))
+    query = dict(urlparse.parse_qsl(url_parts[4]))
+    query.update(params)
+    url_parts[4] = urlencode(query)
+    return redirect(urlparse.urlunparse(url_parts))
+
 
 def oauth_completion(request):
     data = {}

@@ -23,6 +23,17 @@
                 <button class="btn btn-info btn-lg btn-block btn-rounded text-uppercase waves-effect waves-light" type="submit">{% trans "Sign in" %}</button>
             </div>
         </div>
+
+        <div class="row">
+            <div class="col-xs-12 col-sm-12 col-md-12 m-t-10 p-b-20 text-center">
+                <div>
+                    <a class="p-20" href="/id/oauth/google/" data-toggle="tooltip" data-original-title="{% trans "Login with" %} Google"><img src="/static/oauth/google.png" title="Google" alt=""></a>
+                    <a class="p-20" href="/id/oauth/yandex/" data-toggle="tooltip" data-original-title="{% trans "Login with" %} Yandex"><img src="/static/oauth/yandex.png" title="Yandex" alt=""></a>
+                    <a class="p-20" href="/id/oauth/mailru/" data-toggle="tooltip" data-original-title="{% trans "Login with" %} Mail.ru"><img src="/static/oauth/mailru.png" title="Mail.ru" alt=""></a>
+                </div>
+            </div>
+        </div>
+
         <div class="form-group m-b-0">
             <div class="col-sm-12 text-center">
                 {% trans "Do not have an account?" %} <a href="/id/signup/" class="text-info m-l-5"><b>{% trans "Sign up" %}</b></a>

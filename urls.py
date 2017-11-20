@@ -10,6 +10,8 @@ urlpatterns = [
     url(r'id/confirm/email/(?P<session_key>[0-9a-z]{40})/$', views.confirm_email),
 
     url(r'id/oauth/google/$', views.oauth_google),
+    url(r'id/oauth/yandex/$', views.oauth_yandex),
+
     url(r'id/oauth/completion/$', views.oauth_completion),
 ]
 
